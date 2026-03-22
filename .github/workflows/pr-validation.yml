@@ -1,0 +1,57 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate HTML
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check index.html exists
+        run: |
+          if [ ! -f index.html ]; then
+            echo "❌ index.html not found!"
+            exit 1
+          fi
+          echo "✅ index.html found"
+
+      - name: Check file size (max 500KB)
+        run: |
+          SIZE=$(wc -c < index.html)
+          echo "File size: $SIZE bytes"
+          if [ $SIZE -gt 512000 ]; then
+            echo "❌ index.html exceeds 500KB limit"
+            exit 1
+          fi
+          echo "✅ File size OK"
+
+      - name: Validate HTML structure
+        run: |
+          if ! grep -q "<html" index.html; then
+            echo "❌ Missing <html> tag"
+            exit 1
+          fi
+          if ! grep -q "<title>" index.html; then
+            echo "❌ Missing <title> tag"
+            exit 1
+          fi
+          if ! grep -q "</body>" index.html; then
+            echo "❌ Missing </body> tag"
+            exit 1
+          fi
+          echo "✅ HTML structure valid"
+
+      - name: Check no sensitive data
+        run: |
+          if grep -q "password\|secret\|api_key\|private_key" index.html; then
+            echo "❌ Possible sensitive data found!"
+            exit 1
+          fi
+          echo "✅ No sensitive data detected"
